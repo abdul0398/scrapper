@@ -3,11 +3,15 @@ const puppeteer = require("puppeteer");
 const {sqlHandler} = require("../services/dbHandler.js");
 const {changeImgSrcToLocal} = require("./tools.js");
 const {postBlog, getBlog} = require("./WpHandler.js");
+const {isHeadingPresent, insertNewHeading} = require("./validation.js");
+const filePath = 'data/heading.json';
 
 async function start() {
-  const {addWebsite, getWebsites} = await sqlHandler();
+
+  // Function to get all the websites from the database
+  const {getWebsites} = await sqlHandler();
   const websites = await getWebsites();
-  console.log(websites);
+
 
   const browser = await puppeteer.launch({
     headless: false,
@@ -18,7 +22,7 @@ async function start() {
 
   const timeoutPromise = new Promise((_, reject) => {
     setTimeout(() => {
-      _(new Error("Navigation timeout"));
+      _("Navigation timeout");
     }, 10000);
   });
 
@@ -32,7 +36,7 @@ async function start() {
   const arr = [];
 
   try {
-    async function processBox(box) {
+    async function processBox(box, websitesToPost) {
       const anchorTag = await box.$("a");
 
       if (anchorTag) {
@@ -45,7 +49,7 @@ async function start() {
           );
           const timeoutPromise = new Promise((_, reject) => {
             setTimeout(() => {
-              _(new Error("Navigation timeout"));
+              _("Timeout");
             }, 10000);
           });
           await newPage.goto(linkedPageUrl, { waitUntil: "domcontentloaded" });
@@ -72,28 +76,33 @@ async function start() {
             status: "publish",
             content: res,
           };
-
-             for (const website of websites) {
-               await postBlog(data, website);
-             }
+          console.log("Posting Blog to " + websitesToPost);
+          for (const website of websitesToPost) {
+            await postBlog(data, website);
+          }
+        await newPage.close();
       }
     }
     
     for (const box of newsListingBoxes) {
       const heading = await box.$('.news-listing-content a');
       const text = await heading.evaluate((element) => element.innerText);
-      console.log(text)
-      const data = await getBlog(text);
-      console.log(data, data.length); 
-      if(data.length <= 2) {
-        console.log("No Blog Found of that title");
-        await processBox(box);
+      const websitesToPost = [];
+      for (const website of websites) {
+        const isPresent = await isHeadingPresent(filePath,text,website.URL);
+        if(!isPresent) {
+          console.log("No Blog Found of that title into " + website.URL+"");
+          insertNewHeading(filePath, text, website.URL);
+          websitesToPost.push(website);
+        }
+      }
+      if(websitesToPost.length > 0) {
+        await processBox(box, websitesToPost);
       }
     }
   } catch (error) {
     console.log(error);
   }
-  console.log(arr, arr.length);
   await browser.close();
 }
 

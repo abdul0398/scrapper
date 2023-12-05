@@ -21,7 +21,7 @@ async function createTableIfNotExists(connection) {
       CREATE TABLE IF NOT EXISTS websites (
         id INT PRIMARY KEY AUTO_INCREMENT,
         secret VARCHAR(255) NOT NULL,
-        website VARCHAR(255) NOT NULL
+        URL VARCHAR(255) NOT NULL
       )`;
     await connection.query(createTableQuery);
   } catch (error) {

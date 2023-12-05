@@ -1,10 +1,11 @@
 const axios = require('axios');
 const https = require('https');
 function config(data, website) {
+  console.log(website, typeof website);
     return {
         method: 'post',
         maxBodyLength: Infinity,
-        url: website.URL,
+        url: website.URL + '/wp-json/wp/v2/posts',
         headers: { 
           'Content-Type': 'application/json', 
           'Authorization': `Basic ${website.secret}}`
@@ -23,7 +24,7 @@ async function postBlog(data, website) {
     return JSON.stringify(response.data);
   }
   catch (error) {
-    console.log(error);
+    console.log(error.message);
   }
 }
 

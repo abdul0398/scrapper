@@ -4,12 +4,15 @@ const fs = require('fs');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
+const rephrase = require("./openAi.js");
+
 
 async function changeImgSrcToLocal(htmlString) {
   const $ = cheerio.load(htmlString);
-  console.log($("img").length);
-
   const promises = [];
+
+  console.log("Changing The Image Link and Rephrasing The Blog Text.....");
+
 
   $('img').each((index, element) => {
       const srcLink = element.attribs.src;
@@ -23,9 +26,29 @@ async function changeImgSrcToLocal(htmlString) {
 
       promises.push(promise);
   });
-
+  
   // Wait for all promises to resolve before continuing
   await Promise.all(promises);
+
+   // Rephrase text inside <p> tags
+  const rephrasePromises = [];
+  $('p').each((index, element) => {
+    const currentText = $(element).text();
+    if (currentText.length >= 120) {
+      const rephrasePromise = rephrase(currentText)
+        .then(newText => {
+          $(element).text(newText);
+        })
+        .catch(error => {
+          console.error(error.message);
+        });
+
+      rephrasePromises.push(rephrasePromise);
+    }
+  });
+
+  // Wait for all rephrase promises to resolve before continuing
+  await Promise.all(rephrasePromises);
 
   const modifiedHtmlString = $.html("body > *");
 
