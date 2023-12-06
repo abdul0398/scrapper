@@ -63,4 +63,4 @@ function isHeadingPresent(filePath, targetHeading, URL) {
 
 
 
-module.exports = {insertNewHeading, isHeadingPresent}
+module.exports = {insertNewHeading, isHeadingPresent, cleanAndLowercase}

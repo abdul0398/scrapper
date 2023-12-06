@@ -18,9 +18,15 @@ function config(data, website) {
 }
 
 async function postBlog(data, website) {
-  console.log("Posting the blog to wordpress with heading: ", data.title, " and website: ", website.URL);
+  console.log("Posting the blog to wordpress with heading: ", data.heading, " and website: ", website.URL);
+
+  const obj = {
+    title: data.heading,
+    content: JSON.parse(data.content),
+    status: 'publish'
+  }
   try {
-    const response = await axios.request(config(data, website));
+    const response = await axios.request(config(obj, website));
     return JSON.stringify(response.data);
   }
   catch (error) {
