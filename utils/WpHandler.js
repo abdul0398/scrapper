@@ -1,7 +1,6 @@
 const axios = require('axios');
 const https = require('https');
 function config(data, website) {
-  console.log(website, typeof website);
     return {
         method: 'post',
         maxBodyLength: Infinity,
@@ -22,7 +21,7 @@ async function postBlog(data, website) {
 
   const obj = {
     title: data.heading,
-    content: JSON.parse(data.content),
+    content: data.content,
     status: 'publish'
   }
   try {

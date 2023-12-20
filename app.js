@@ -20,10 +20,15 @@ app.listen(port, () => {
 
 async function initial() {
   try {
-    const { getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb } = await sqlHandler();
-    await mainTask(getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
+    const { getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb, createConnection } = await sqlHandler();
+    const connection = await createConnection();
+    await mainTask(connection,getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
+    await connection.close();
     const job = schedule.scheduleJob('0 0 */4 * *', async function() {
+    const connection = await createConnection();
       await mainTask(getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
+      await connection.close();
+      
     });
   } catch (error) {
     console.log(error.message);
@@ -31,10 +36,10 @@ async function initial() {
 }
 
 
-async function mainTask(getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb) {
+async function mainTask(connection,getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb) {
   try {
-    await scrapHandler(saveBlogToDb, isBlogPresent)
-    await postBlogHandler(getWebsites, postBlog, getBlogsFromDb);
+    await scrapHandler(connection,saveBlogToDb, isBlogPresent)
+    await postBlogHandler(connection,getWebsites, postBlog, getBlogsFromDb);
   } catch (error) {
     console.log(error.message);
   }

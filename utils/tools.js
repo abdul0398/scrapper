@@ -28,7 +28,11 @@ async function changeImgSrcToLocal(htmlString) {
   });
   
   // Wait for all promises to resolve before continuing
-  await Promise.all(promises);
+  try {
+    await Promise.all(promises);
+  } catch (error) {
+    console.log(error);
+  }
 
    // Rephrase text inside <p> tags
   const rephrasePromises = [];
@@ -48,7 +52,11 @@ async function changeImgSrcToLocal(htmlString) {
   });
 
   // Wait for all rephrase promises to resolve before continuing
-  await Promise.all(rephrasePromises);
+  try {
+    await Promise.all(rephrasePromises);
+  } catch (error) {
+    console.log(error.message);
+  }
 
   const modifiedHtmlString = $.html("body > *");
 

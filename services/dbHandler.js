@@ -8,6 +8,7 @@ async function createConnection() {
       password: process.env.DB_PASS,
       database: process.env.DATABASE,
     });
+    await createTableIfNotExists(connection);
     return connection;
   } catch (error) {
     console.error("Error creating database connection:", error.message);
@@ -40,7 +41,7 @@ async function createTableIfNotExists(connection) {
 
 async function addWebsite(connection, secret, website) {
   try {
-    const query = `INSERT INTO websites (secret, website) VALUES (?, ?)`;
+    const query = `INSERT INTO websites (secret, URL) VALUES (?, ?)`;
     const [rows] = await connection.query(query, [secret, website]);
     return rows;
   } catch (error) {
@@ -95,16 +96,14 @@ async function getBlogsFromDb(connection) {
 
 
 async function sqlHandler() {
-  const connection = await createConnection();
-  await createTableIfNotExists(connection);
 
   return {
-    connection,
-    addWebsite: async (secret, website) => addWebsite(connection, secret, website),
-    getWebsites: async () => getWebsites(connection),
-    saveBlogToDb: async (obj) => saveBlogToDb(connection, obj),
-    isBlogPresent: async (guid) => isBlogPresent(connection, guid),
-    getBlogsFromDb: async () => getBlogsFromDb(connection),
+    createConnection: async ()=> createConnection(),
+    addWebsite: async (connection, secret, website) => addWebsite(connection, secret, website),
+    getWebsites: async (connection) => getWebsites(connection),
+    saveBlogToDb: async (connection,obj) => saveBlogToDb(connection,obj),
+    isBlogPresent: async (connection,guid) => isBlogPresent(connection,guid),
+    getBlogsFromDb: async (connection) => getBlogsFromDb(connection),
   };
 }
 

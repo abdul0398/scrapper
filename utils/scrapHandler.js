@@ -9,9 +9,9 @@ const {
   cleanAndLowercase,
 } = require("./validation.js");
 const filePath = "data/heading.json";
-async function scrapHandler(saveBlogToDb, isBlogPresent) {
+async function scrapHandler(connection, saveBlogToDb, isBlogPresent) {
   try {
-       const browser = await puppeteer.launch({
+      const browser = await puppeteer.launch({
       headless: true,
       protocolTimeout: 0,
     });
@@ -70,7 +70,7 @@ async function scrapHandler(saveBlogToDb, isBlogPresent) {
           guid: guid,
         };
         console.log("saving blog to database with heading: ", heading);
-        await saveBlogToDb(data);
+        await saveBlogToDb(connection, data);
         await newPage.close();
       }
     }
@@ -83,7 +83,7 @@ async function scrapHandler(saveBlogToDb, isBlogPresent) {
         text
       );
       const guid = cleanAndLowercase(text);
-      const flag = await isBlogPresent(guid);
+      const flag = await isBlogPresent(connection, guid);
       if (!flag) {
         console.log("Blog doesn't Found in database with heading", text);
         await processBox(box);
@@ -95,9 +95,9 @@ async function scrapHandler(saveBlogToDb, isBlogPresent) {
   }
 }
 
-async function postBlogHandler (getWebsites, postBlog, getBlogsFromDb) {
-  const websites = await getWebsites();
-  const blogs = await getBlogsFromDb();
+async function postBlogHandler (connection, getWebsites, postBlog, getBlogsFromDb) {
+  const websites = await getWebsites(connection);
+  const blogs = await getBlogsFromDb(connection);
   for (const blog of blogs) {
     for (const website of websites) {
       const flag = isHeadingPresent(filePath, blog.heading, website.URL);
