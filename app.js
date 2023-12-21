@@ -22,7 +22,7 @@ async function initial() {
   try {
     const { getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb, createConnection } = await sqlHandler();
     const connection = await createConnection();
-    await mainTask(connection,getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
+    await mainTask(connection, getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
     await connection.close();
     const job = schedule.scheduleJob('0 0 */4 * *', async function() {
     const connection = await createConnection();
@@ -41,9 +41,13 @@ async function mainTask(connection,getWebsites, saveBlogToDb, isBlogPresent, get
     await scrapHandler(connection,saveBlogToDb, isBlogPresent)
     await postBlogHandler(connection,getWebsites, postBlog, getBlogsFromDb);
   } catch (error) {
-    console.log(error.message);
+    console.log(error);
   }
 }
+
+
+
+
 
 
 

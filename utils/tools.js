@@ -5,17 +5,27 @@ const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
 const rephrase = require("./openAi.js");
+const https = require('https');
+const fetch = require('node-fetch');
+
+const httpsAgent = new https.Agent({
+  rejectUnauthorized: false, // Bypasses SSL certificate check; use with caution
+});
+
 
 
 async function changeImgSrcToLocal(htmlString) {
   const $ = cheerio.load(htmlString);
   const promises = [];
-
+  let feat_img_link = '';
   console.log("Changing The Image Link and Rephrasing The Blog Text.....");
 
 
   $('img').each((index, element) => {
       const srcLink = element.attribs.src;
+      if(index == 0){
+        feat_img_link = srcLink;
+      }
       const promise = getImageLink(srcLink)
           .then(newSrcLink => {
               $(element).attr('src', newSrcLink);
@@ -61,7 +71,7 @@ async function changeImgSrcToLocal(htmlString) {
   const modifiedHtmlString = $.html("body > *");
 
   fs.writeFileSync("index.html", modifiedHtmlString);
-  return modifiedHtmlString;
+  return {modifiedHtmlString, feat_img_link};
 }
 
 async function getImageLink(imageUrl) {
@@ -75,12 +85,24 @@ async function getImageLink(imageUrl) {
     return hostedImageUrl;
 }
 
-
-
 function generateRandomString(length) {
   return crypto.randomBytes(Math.ceil(length / 2))
     .toString('hex') 
     .slice(0, length);
+}
+
+function getCurrentTimestamp(string) {
+  const now = new Date(string);
+
+  const year = now.getFullYear();
+  const month = ('0' + (now.getMonth() + 1)).slice(-2); // Months are 0-indexed in JS
+  const day = ('0' + now.getDate()).slice(-2);
+  const hours = ('0' + now.getHours()).slice(-2);
+  const minutes = ('0' + now.getMinutes()).slice(-2);
+  const seconds = ('0' + now.getSeconds()).slice(-2);
+  const milliseconds = ('00' + now.getMilliseconds()).slice(-3); // Ensure 3 digits
+
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
 
@@ -88,7 +110,8 @@ function generateRandomString(length) {
 module.exports = {
   changeImgSrcToLocal,
   getImageLink,
-  generateRandomString
+  generateRandomString,
+  getCurrentTimestamp
 }
 
 

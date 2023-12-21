@@ -1,4 +1,5 @@
 const mysql = require("mysql2/promise");
+const {getCurrentTimestamp} = require("../utils/tools.js");
 
 async function createConnection() {
   try {
@@ -30,7 +31,9 @@ async function createTableIfNotExists(connection) {
         id INT PRIMARY KEY AUTO_INCREMENT,
         guid VARCHAR(255) NOT NULL,
         heading VARCHAR(255) NOT NULL,
-        content JSON
+        content JSON,
+        feat_img VARCHAR(255),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`;
     await connection.query(createBlogDataTableQuery);
   } catch (error) {
@@ -54,7 +57,6 @@ async function isBlogPresent(connection, guid) {
   try {
     const query = `SELECT COUNT(*) as count FROM blogData WHERE guid = ?`;
     const [rows] = await connection.query(query, [guid]);
-    // rows[0].count will contain the number of rows with the specified heading
     return rows[0].count > 0;
   } catch (error) {
     console.error("Error checking if blog is present:", error.message);
@@ -74,9 +76,10 @@ async function getWebsites(connection) {
   }
 }
 async function saveBlogToDb(connection, obj) {
+  const created_at = getCurrentTimestamp(obj.date);
   try {
-    const query = `INSERT INTO blogData (heading, content, guid) VALUES (?, ?, ?)`;
-    const [rows] = await connection.query(query, [obj.heading, JSON.stringify(obj.content), obj.guid]);
+    const query = `INSERT INTO blogData (heading, content, guid, created_at, feat_img) VALUES (?, ?, ?, ?, ?)`;
+    const [rows] = await connection.query(query, [obj.heading, JSON.stringify(obj.content), obj.guid, created_at, obj.feat_img]);
     return rows;
   } catch (error) {
     console.error("Error adding website:", error.message);
@@ -111,3 +114,6 @@ async function sqlHandler() {
 
 
 module.exports = { sqlHandler };
+
+
+
