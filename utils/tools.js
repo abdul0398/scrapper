@@ -45,28 +45,28 @@ async function changeImgSrcToLocal(htmlString) {
     console.log(error);
   }
 
-   // Rephrase text inside <p> tags
-  const rephrasePromises = [];
-  $('p').each((index, element) => {
+  
+
+  const paragraphs = $('p');
+
+  for (const element of paragraphs) {
     const currentText = $(element).text();
     if (currentText.length >= 120) {
-      const rephrasePromise = rephrase(currentText, "\n Please rephrase the above sentence, with same number of paras")
-        .then(newText => {
-          $(element).text(newText);
-        })
-        .catch(error => {
-          console.log("Error in rephrasing hence skipping -", error.message);
-        });
+      try {
+        // Perform the rephrasing and wait for it to complete
+        const newText = await rephrase(currentText, "\n Please rephrase the above sentence, with the same number of paras");
+        $(element).text(newText);
 
-      rephrasePromises.push(rephrasePromise);
+        // Add a delay before making the next request
+        await delay(1000); // Delays for 1 second; adjust as needed
+      } catch (error) {
+        console.log("Error in rephrasing, hence skipping -", error.message);
+      }
     }
-  });
-
-  // Wait for all rephrase promises to resolve before continuing
-  try {
-    await Promise.all(rephrasePromises);
-  } catch (error) {
-    console.log(error.message);
+  }
+  
+  function delay(time) {
+    return new Promise(resolve => setTimeout(resolve, time));
   }
 
   const modifiedHtmlString = $.html("body > *");
