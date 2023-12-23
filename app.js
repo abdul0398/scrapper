@@ -26,7 +26,7 @@ async function initial() {
     await connection.close();
     const job = schedule.scheduleJob('0 0 */4 * *', async function() {
     const connection = await createConnection();
-      await mainTask(getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
+      await mainTask(connection, getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb);
       await connection.close();
       
     });

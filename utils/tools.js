@@ -4,9 +4,10 @@ const fs = require('fs');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
-const rephrase = require("./openAi.js");
+const {rephrase, getTagsAndCategories} = require("./openAi.js");
 const https = require('https');
 const fetch = require('node-fetch');
+
 
 const httpsAgent = new https.Agent({
   rejectUnauthorized: false, // Bypasses SSL certificate check; use with caution
@@ -49,12 +50,12 @@ async function changeImgSrcToLocal(htmlString) {
   $('p').each((index, element) => {
     const currentText = $(element).text();
     if (currentText.length >= 120) {
-      const rephrasePromise = rephrase(currentText)
+      const rephrasePromise = rephrase(currentText, "\n Please rephrase the above sentence, with same number of paras")
         .then(newText => {
           $(element).text(newText);
         })
         .catch(error => {
-          console.error(error.message);
+          console.log("Error in rephrasing hence skipping -", error.message);
         });
 
       rephrasePromises.push(rephrasePromise);
@@ -70,7 +71,6 @@ async function changeImgSrcToLocal(htmlString) {
 
   const modifiedHtmlString = $.html("body > *");
 
-  fs.writeFileSync("index.html", modifiedHtmlString);
   return {modifiedHtmlString, feat_img_link};
 }
 
@@ -106,12 +106,176 @@ function getCurrentTimestamp(string) {
 }
 
 
+async function createTagsAndCategories(website, heading) {
+  try {
+    const [tags, categories] = await getTagsAndCategories(heading);
+    const tagsPromises = tags.map(tag => createTagsApi(website, tag));
+    const categoriesPromises = categories.map(category => createCategoriesApi(website, category));
+
+    const tagsResponses = await Promise.all(tagsPromises);
+    const categoriesResponses = await Promise.all(categoriesPromises);
+
+    const tagsId = tagsResponses.map(res => res.id ? res.id : res.data.term_id);
+    const categoriesId = categoriesResponses.map(res => res.id ? res.id : res.data.term_id);
+
+    return { tagsId, categoriesId };
+  } catch (error) {
+    console.log("Error in creating Tags and Categories", error.message);
+    return { tagsId: [], categoriesId: [] };
+  }
+}
+
+
+async function getUsersId(website) {
+  try {
+      const response = await fetch(website.URL + '/wp-json/wp/v2/users', {
+          method: 'GET',
+          agent: httpsAgent,
+          headers: {
+              'Authorization': `Basic ${website.secret}`,
+          }
+      });
+      const data = await response.json();
+      const userIds = data.map((user)=>{
+          return user.id
+      })
+      return userIds;
+  } catch (error) {
+      console.log(`Error in Checking Users on webiste ${website.URL}`, error.message);
+      return false;       
+  }
+}
+
+async function createUserHandler(website) {
+  const users = [
+      { name: "Benjamin Tan", username: "BenT_SG" },
+      { name: "Jasmine Lim", username: "JazzyLim_SG" },
+      { name: "Marcus Wong", username: "MarWong_SG" },
+      { name: "Serena Koh", username: "SerKoh_SG" },
+      { name: "Desmond Tan", username: "DesTan_SG" },
+      { name: "Emily Ng", username: "EmiNg_SG" },
+      { name: "Adrian Lee", username: "AdrLee_SG" },
+      { name: "Natasha Chen", username: "NatChen_SG" },
+      { name: "Aaron Goh", username: "AarGoh_SG" },
+      { name: "Rachel Low", username: "RachLow_SG" }
+  ];
+  const bool = await checkIfUsersArePresent(website);
+  if(bool){
+      const usersId = await getUsersId(website);
+      return usersId;
+  }else{
+      try {
+          users.forEach(async user=>{
+              await createUserApi(website, user);
+          })
+          console.log("User creation Successfull");
+          const usersId = await getUsersId(website);
+          return usersId;
+      } catch (error) {
+          return [0];
+          console.log("Error in Creating users", error.message);
+      }
+  }
+
+}
+
+async function createUserApi(website, user) {
+  try {
+      const email = createEmailFromWebsite(website.URL, user.username);
+      const response = await fetch(website.URL + '/wp-json/wp/v2/users', {
+          method: 'POST',
+          agent: httpsAgent,
+          headers: {
+              'Authorization': `Basic ${website.secret}`,
+              'Content-Type': 'application/json', 
+          },
+          body: JSON.stringify({name:user.name, username:user.username, email:email, password:website.secret})
+      });
+  
+      const res =  await response.json();
+  } catch (error) {
+      console.log(`Error in Creating user on webiste ${website.URL} with username ${user.username}`, error.message);
+  }
+}
+
+async function checkIfUsersArePresent(website) {
+  try {
+      const response = await fetch(website.URL + '/wp-json/wp/v2/users', {
+          method: 'GET',
+          agent: httpsAgent,
+          headers: {
+              'Authorization': `Basic ${website.secret}`,
+          }
+      });
+      const data = await response.json();
+      return data.length > 6;
+  } catch (error) {
+      console.log(`Error in Checking Users on webiste ${website.URL}`, error.message);
+      return false;       
+  }
+}
+
+function createEmailFromWebsite(url, username) {
+  try {
+      const regex = /https?:\/\/(?:www\.)?([a-zA-Z]+\d*)\..*/;
+      const match = url.match(regex);
+  
+      if (match) {
+          const extractedText = match[1];
+          return username+"@"+extractedText+".com";
+      }
+  } catch (error) {
+      console.log("Error is mail generation in regex", error.message);
+  }
+}
+
+
+async function createTagsApi(website, name) {
+  try {
+      const response = await fetch(website.URL + '/wp-json/wp/v2/tags', {
+          method: 'POST',
+          agent: httpsAgent,
+          headers: {
+              'Authorization': `Basic ${website.secret}`,
+              'Content-Type': 'application/json', 
+          },
+          body: JSON.stringify({name:name})
+      });
+  
+      const res =  await response.json();
+      return res;
+  } catch (error) {
+      console.log(`Error in Creating tags on webiste ${website.URL} with name ${name}`, error.message);
+  }
+}
+async function createCategoriesApi(website, name) {
+  try {
+      const response = await fetch(website.URL + '/wp-json/wp/v2/categories', {
+          method: 'POST',
+          agent: httpsAgent,
+          headers: {
+              'Authorization': `Basic ${website.secret}`,
+              'Content-Type': 'application/json', 
+          },
+          body: JSON.stringify({name:name})
+      });
+  
+      const res =  await response.json();
+      return res;
+  } catch (error) {
+      console.log(`Error in Creating tags on webiste ${website.URL} with name ${name}`, error.message);
+  }
+}
+
+
 
 module.exports = {
   changeImgSrcToLocal,
   getImageLink,
   generateRandomString,
-  getCurrentTimestamp
+  getCurrentTimestamp,
+  createTagsAndCategories,
+  createUserHandler,
 }
 
 

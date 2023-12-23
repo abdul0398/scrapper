@@ -18,7 +18,7 @@ function config(data, website) {
     };
 }
 
-async function postBlog(data, website, id) {
+async function postBlog(data, website, id, userId, tagsId, categoriesId) {
   console.log("Posting the blog to wordpress with heading: ", data.heading, " and website: ", website.URL, "with featured_media_id", id);
 
   const obj = {
@@ -26,14 +26,18 @@ async function postBlog(data, website, id) {
     content: data.content,
     status: 'publish',
     date:data.created_at,
-    featured_media:id
+    featured_media:id,
+    author:userId,
+    tags:tagsId,
+    categories:categoriesId
+
   }
   try {
     const response = await axios.request(config(obj, website));
     return JSON.stringify(response.data);
   }
   catch (error) {
-    console.log(error.message);
+    console.log("Error in posting blogs ",error.message);
     return false;
   }
 }
@@ -54,7 +58,6 @@ async function postMedia(media_URL, website) {
   if(!media_URL){
     return {id : 0};
   }
-  console.log(media_URL, website);
   const filename = media_URL.split('/').pop();
   const response = await fetch(website.URL + '/wp-json/wp/v2/media', {
       method: 'POST',

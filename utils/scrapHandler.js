@@ -1,7 +1,7 @@
 require("dotenv").config();
 const puppeteer = require("puppeteer");
 const { sqlHandler } = require("../services/dbHandler.js");
-const { changeImgSrcToLocal } = require("./tools.js");
+const { changeImgSrcToLocal, createTagsAndCategories, createUserHandler } = require("./tools.js");
 const { postBlog, getBlog, postMedia } = require("./WpHandler.js");
 const {
   isHeadingPresent,
@@ -12,7 +12,7 @@ const filePath = "data/heading.json";
 async function scrapHandler(connection, saveBlogToDb, isBlogPresent) {
   try {
       const browser = await puppeteer.launch({
-      headless: false,
+      headless: true,
       protocolTimeout: 0,
     });
     const page = await browser.newPage();
@@ -106,16 +106,26 @@ async function scrapHandler(connection, saveBlogToDb, isBlogPresent) {
 async function postBlogHandler (connection, getWebsites, postBlog, getBlogsFromDb) {
   const websites = await getWebsites(connection);
   const blogs = await getBlogsFromDb(connection);
-  for (const blog of blogs) {
-    for (const website of websites) {
-      const flag = isHeadingPresent(filePath, blog.heading, website.URL);
-      if (!flag) {
+  let userArr = [];
+  for (const website of websites) {
+    userArr = await createUserHandler(website);
+      for (const blog of blogs) {
+        const flag = isHeadingPresent(filePath, blog.heading, website.URL);
+        if (!flag) {
+        const userId = getRandomElement(userArr);
+        const {tagsId, categoriesId} = await createTagsAndCategories(website,blog.heading);
         const res = await postMedia(blog.feat_img, website);
-        const data = await postBlog(blog, website, res.id);
+        const data = await postBlog(blog, website, res.id, userId, tagsId, categoriesId);
         insertNewHeading(filePath, blog.heading, website.URL);
       }
     }
   }
+
+  console.log("########## All blogs Posted Successfully ##########")
 };
 
+
+function getRandomElement(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
 module.exports = {scrapHandler, postBlogHandler};
