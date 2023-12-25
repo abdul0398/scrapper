@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require('express');
 const app = express();
 const {scrapHandler, postBlogHandler} = require('./utils/scrapHandler.js');
@@ -38,7 +39,7 @@ async function initial() {
 
 async function mainTask(connection,getWebsites, saveBlogToDb, isBlogPresent, getBlogsFromDb) {
   try {
-    await scrapHandler(connection,saveBlogToDb, isBlogPresent)
+    // await scrapHandler(connection,saveBlogToDb, isBlogPresent)
     await postBlogHandler(connection,getWebsites, postBlog, getBlogsFromDb);
   } catch (error) {
     console.log(error);

@@ -3,7 +3,10 @@ require("dotenv").config();
 const OpenAI = require('openai');
 const openai = new OpenAI({apiKey: process.env.OPENAI_API_KEY});
 
-async function rephrase(text, action) {
+const {geminiApiHandler} = require("./geminiApi");
+
+async function openAiHandler(text, action) {
+  console.log("GPT rephrasing the text")
   try {
     const chatCompletion = await openai.chat.completions.create({
       messages: [{ role: 'user', content: text + action}],
@@ -27,8 +30,7 @@ async function rephrase(text, action) {
 
 async function getTagsAndCategories(heading) {
   console.log("This is heading to generate tags", heading);
-  const data = await rephrase(heading,`\n provide 3 tags and 1 categories of above title in this format {["tag1","tag2","tag3"],["categorie"]}`)
-  console.log(typeof data);
+  const data = process.env.AI_TYPE == "GPT"? await rephrase(heading,`\n provide 3 tags and 1 categories of above title in this format {["tag1","tag2","tag3"],["categorie"]}`) : await geminiApiHandler(heading, `\n provide 3 tags and 1 categories of above title in this format {["tag1","tag2","tag3"],["categorie"]}`);
   return extractTagsAndCategories(data);
 }
 
@@ -36,24 +38,14 @@ async function getTagsAndCategories(heading) {
 
 function extractTagsAndCategories(inputString) {
   try {
-      const cleanedInput = inputString.replace(/^{|\}$/g, '');
-
-      const parts = cleanedInput.split(/\]\s*,\s*\[/);
-
-      const arrays = parts.map(part => 
-          part.replace(/\[|\]/g, '')  // Remove square brackets
-             .split(',')             // Split by comma
-             .map(item => item.trim().replace(/^"|"$/g, '')) // Trim each item and remove double quotes
-      );
-      return arrays;
+    let regex = /\[.*?\]/g;
+    let matches = inputString.match(regex);    
+    let arrays = matches.map(match => JSON.parse(match.replace(/'/g, '"')));
+    return arrays;
   } catch (error) {
       console.log(error);    
       return {};
   }
 }
 
-
-
-
-
-module.exports = {rephrase, getTagsAndCategories};
+module.exports = {openAiHandler, getTagsAndCategories};

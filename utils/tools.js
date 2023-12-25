@@ -4,7 +4,8 @@ const fs = require('fs');
 const axios = require('axios');
 const path = require('path');
 const crypto = require('crypto');
-const {rephrase, getTagsAndCategories} = require("./openAi.js");
+const {openAiHandler, getTagsAndCategories} = require("./openAi.js");
+const { geminiApiHandler } = require("./geminiApi.js");
 const https = require('https');
 const fetch = require('node-fetch');
 
@@ -54,14 +55,14 @@ async function changeImgSrcToLocal(htmlString) {
     if (currentText.length >= 120) {
       try {
         // Perform the rephrasing and wait for it to complete
-        const newText = await rephrase(currentText, "\n Please rephrase the above sentence, with the same number of paras");
+        const newText = process.env.AI_TYPE == "BARD"? await geminiApiHandler(currentText, "\n Please rephrase the above sentence, with the same number of paras"):await openAiHandler(currentText, "\n Please rephrase the above sentence, with the same number of paras");
         $(element).text(newText);
 
         // Add a delay before making the next request
-        await delay(1000); // Delays for 1 second; adjust as needed
       } catch (error) {
         console.log("Error in rephrasing, hence skipping -", error.message);
       }
+      await delay(1000); // Delays for 1 second; adjust as needed
     }
   }
   
@@ -109,6 +110,7 @@ function getCurrentTimestamp(string) {
 async function createTagsAndCategories(website, heading) {
   try {
     const [tags, categories] = await getTagsAndCategories(heading);
+    console.log(tags, categories);
     const tagsPromises = tags.map(tag => createTagsApi(website, tag));
     const categoriesPromises = categories.map(category => createCategoriesApi(website, category));
 

@@ -1,4 +1,3 @@
-require("dotenv").config();
 const puppeteer = require("puppeteer");
 const { sqlHandler } = require("../services/dbHandler.js");
 const { changeImgSrcToLocal, createTagsAndCategories, createUserHandler } = require("./tools.js");
